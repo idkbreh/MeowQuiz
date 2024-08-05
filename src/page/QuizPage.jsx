@@ -19,6 +19,7 @@ const QuizPage = () => {
   const [smoothTimeLeft, setSmoothTimeLeft] = useState(timePerQuestion * 10); // 10 times more granular
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [animateChoices, setAnimateChoices] = useState('');
+  const [buttonDisabled, setButtonDisabled] = useState(false);
   const navigate = useNavigate();
   const { subject } = useParams();
   const location = useLocation();
@@ -67,6 +68,8 @@ const QuizPage = () => {
   };
 
   const handleSubmit = async () => {
+    setButtonDisabled(true);
+
     if (questions.length === 0) {
       setScore(score + 1);
       setIsQuizCompleted(true);
@@ -92,10 +95,12 @@ const QuizPage = () => {
           message.error('Failed to save your score.');
         }
       }
+      setButtonDisabled(false);
     }, 2000);
   };
 
   const handleTimeUp = () => {
+    setButtonDisabled(true);
     setShowAnswer(true);
     setTimeout(() => {
       setShowAnswer(false);
@@ -106,6 +111,7 @@ const QuizPage = () => {
       } else {
         setIsQuizCompleted(true);
       }
+      setButtonDisabled(false);
     }, 2000);
   };
 
@@ -138,7 +144,7 @@ const QuizPage = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: 'auto' }}>
       <Card
-        title={<Title level={2}>Meow</Title>}
+        title={<Title level={2}>Quiz</Title>}
         extra={<Tag color="blue">{subject}</Tag>}
         style={{ boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}
       >
@@ -199,7 +205,7 @@ const QuizPage = () => {
           <Button 
             type="primary" 
             onClick={handleSubmit} 
-            disabled={selectedAnswer === null} 
+            disabled={selectedAnswer === null || buttonDisabled} 
             size="large"
             block
           >
