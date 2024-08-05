@@ -6,8 +6,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { TrophyOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
-const maxQuestions = 30;
-const timePerQuestion = 15;
+const maxQuestions = 10;
+const timePerQuestion = 30;
 
 const QuizPage = () => {
   const [score, setScore] = useState(0);
@@ -149,7 +149,7 @@ const QuizPage = () => {
             status="active"
           />
           
-          <Typography.Title level={4}>{questions[currentQuestionIndex].question}</Typography.Title>
+          <Typography.Title style={{fontFamily:'kanit'}} level={4}>{questions[currentQuestionIndex].question}</Typography.Title>
           
           <Progress 
             percent={(smoothTimeLeft / (timePerQuestion * 10)) * 100} 
