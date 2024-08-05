@@ -86,7 +86,7 @@ const QuizPage = () => {
       } else {
         setIsQuizCompleted(true);
         try {
-          await axios.post('http://localhost:3000/api/rank', { name, score, time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10) });
+          await axios.post('https://bio-ontop.vercel.app/api/rank', { name, score, time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10) });
           message.success('Your score has been saved!');
         } catch (error) {
           message.error('Failed to save your score.');
