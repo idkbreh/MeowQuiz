@@ -4,14 +4,15 @@ import { Button, Card, Radio, Spin, Typography, Alert, Progress, message, Tag, S
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { TrophyOutlined } from '@ant-design/icons';
-
+import GamblingGame from '../components/GamblingGame';
 const { Title } = Typography;
-const maxQuestions = 10;
+const maxQuestions = 1;
 const timePerQuestion = 30;
 
 const QuizPage = () => {
   const [score, setScore] = useState(0);
   const [questions, setQuestions] = useState([]);
+  const [showGambling, setShowGambling] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ const QuizPage = () => {
   }, [smoothTimeLeft]);
 
   useEffect(() => {
-    if (currentQuestionIndex >= 5 && currentQuestionIndex <= 10) {
+    if (currentQuestionIndex >= 3 && currentQuestionIndex <= 15) {
       const randomEffect = Math.random();
       if (randomEffect > 0.5) {
         setAnimateChoices('choice-move');
@@ -77,28 +78,41 @@ const QuizPage = () => {
     }
 
     if (questions[currentQuestionIndex].answer === selectedAnswer) {
-      setScore(prevScore => prevScore + (smoothTimeLeft / 10 * 3));
-    }
-    setShowAnswer(true);
-    setTimeout(async () => {
-      setShowAnswer(false);
-      setSelectedAnswer(null);
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        resetTimer();
+        setScore(prevScore => prevScore + (smoothTimeLeft / 10 * 3));
+        setShowGambling(true); // Show gambling option after correct answer
       } else {
-        setIsQuizCompleted(true);
-        try {
-          await axios.post('https://bio-ontop.vercel.app/api/rank', { name, score, time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10) });
-          message.success('Your score has been saved!');
-        } catch (error) {
-          message.error('Failed to save your score.');
-        }
+        setShowAnswer(true);
+        setTimeout(async () => {
+          setShowAnswer(false);
+          setSelectedAnswer(null);
+          if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            resetTimer();
+          } else {
+            setIsQuizCompleted(true);
+            try {
+              await axios.post('https://bio-ontop.vercel.app/api/rank', { name, score, time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10) });
+              message.success('Your score has been saved!');
+            } catch (error) {
+              message.error('Failed to save your score.');
+            }
+          }
+          setButtonDisabled(false);
+        }, 2000);
       }
-      setButtonDisabled(false);
-    }, 2000);
-  };
-
+    };
+    const handleGamblingClose = () => {
+        setShowGambling(false);
+        setShowAnswer(false);
+        setSelectedAnswer(null);
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+          resetTimer();
+        } else {
+          setIsQuizCompleted(true);
+        }
+        setButtonDisabled(false);
+      };
   const handleTimeUp = () => {
     setButtonDisabled(true);
     setShowAnswer(true);
@@ -202,6 +216,13 @@ const QuizPage = () => {
             />
           )}
   
+  {showGambling ? (
+          <GamblingGame
+            score={score}
+            onScoreChange={setScore}
+            onClose={handleGamblingClose}
+          />
+        ) : (
           <Button 
             type="primary" 
             onClick={handleSubmit} 
@@ -211,6 +232,7 @@ const QuizPage = () => {
           >
             {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Finish'}
           </Button>
+        )}
   
           <Statistic title="Score" value={score} prefix={<TrophyOutlined />} />
         </Space>
