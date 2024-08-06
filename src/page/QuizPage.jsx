@@ -6,7 +6,7 @@ import { TrophyOutlined } from '@ant-design/icons';
 import GamblingGame from '../components/GamblingGame';
 
 const { Title } = Typography;
-const maxQuestions = 1;
+const maxQuestions = 15;
 const timePerQuestion = 30;
 
 const QuizPage = () => {
