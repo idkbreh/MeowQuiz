@@ -1,30 +1,32 @@
-// src/pages/QuizPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Card, Radio, Spin, Typography, Alert, Progress, message, Tag, Space, Statistic } from 'antd';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { TrophyOutlined } from '@ant-design/icons';
 import GamblingGame from '../components/GamblingGame';
+
 const { Title } = Typography;
 const maxQuestions = 1;
 const timePerQuestion = 30;
 
 const QuizPage = () => {
-  const [score, setScore] = useState(0);
-  const [questions, setQuestions] = useState([]);
-  const [showGambling, setShowGambling] = useState(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [smoothTimeLeft, setSmoothTimeLeft] = useState(timePerQuestion * 10); // 10 times more granular
-  const [isQuizCompleted, setIsQuizCompleted] = useState(false);
-  const [animateChoices, setAnimateChoices] = useState('');
-  const [buttonDisabled, setButtonDisabled] = useState(false);
-  const navigate = useNavigate();
-  const { subject } = useParams();
-  const location = useLocation();
-  const { name } = location.state || { name: '' };
+    const [saveAttempted, setSaveAttempted] = useState(false);
+    const [score, setScore] = useState(0);
+    const [questions, setQuestions] = useState([]);
+    const [showGambling, setShowGambling] = useState(false);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [showAnswer, setShowAnswer] = useState(false);
+    const [smoothTimeLeft, setSmoothTimeLeft] = useState(timePerQuestion * 10); // 10 times more granular
+    const [isQuizCompleted, setIsQuizCompleted] = useState(false);
+    const [isScoreSaved, setIsScoreSaved] = useState(false);
+    const [animateChoices, setAnimateChoices] = useState('');
+    const [buttonDisabled, setButtonDisabled] = useState(false);
+    const navigate = useNavigate();
+    const { subject } = useParams();
+    const location = useLocation();
+    const { name } = location.state || { name: '' };
 
   useEffect(() => {
     axios.get(`https://bio-ontop.vercel.app/api/quiz?subject=${subject}&numQuestions=${maxQuestions}`)
@@ -60,6 +62,29 @@ const QuizPage = () => {
     }
   }, [currentQuestionIndex]);
 
+  useEffect(() => {
+    const saveScore = async () => {
+      try {
+        await axios.post('https://bio-ontop.vercel.app/api/rank', {
+          name,
+          score,
+          time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10),
+        });
+        message.success('Your score has been saved!');
+        setIsScoreSaved(true);
+      } catch (error) {
+        message.error('Failed to save your score. Retrying...');
+        setSaveAttempted(false);
+      }
+    };
+
+    if (isQuizCompleted && !isScoreSaved && !saveAttempted) {
+      setSaveAttempted(true);
+      saveScore();
+    }
+  }, [isQuizCompleted, isScoreSaved, saveAttempted, name, score, currentQuestionIndex, smoothTimeLeft]);
+
+
   const resetTimer = () => {
     setSmoothTimeLeft(timePerQuestion * 10);
   };
@@ -78,31 +103,11 @@ const QuizPage = () => {
     }
 
     if (questions[currentQuestionIndex].answer === selectedAnswer) {
-        setScore(prevScore => prevScore + (smoothTimeLeft / 10 * 3));
-        setShowGambling(true); // Show gambling option after correct answer
-      } else {
-        setShowAnswer(true);
-        setTimeout(async () => {
-          setShowAnswer(false);
-          setSelectedAnswer(null);
-          if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
-            resetTimer();
-          } else {
-            setIsQuizCompleted(true);
-            try {
-              await axios.post('https://bio-ontop.vercel.app/api/rank', { name, score, time: timePerQuestion * maxQuestions - (currentQuestionIndex * timePerQuestion + smoothTimeLeft / 10) });
-              message.success('Your score has been saved!');
-            } catch (error) {
-              message.error('Failed to save your score.');
-            }
-          }
-          setButtonDisabled(false);
-        }, 2000);
-      }
-    };
-    const handleGamblingClose = () => {
-        setShowGambling(false);
+      setScore(prevScore => prevScore + (smoothTimeLeft / 10 * 3));
+      setShowGambling(true); // Show gambling option after correct answer
+    } else {
+      setShowAnswer(true);
+      setTimeout(() => {
         setShowAnswer(false);
         setSelectedAnswer(null);
         if (currentQuestionIndex < questions.length - 1) {
@@ -112,7 +117,23 @@ const QuizPage = () => {
           setIsQuizCompleted(true);
         }
         setButtonDisabled(false);
-      };
+      }, 2000);
+    }
+  };
+
+  const handleGamblingClose = () => {
+    setShowGambling(false);
+    setShowAnswer(false);
+    setSelectedAnswer(null);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      resetTimer();
+    } else {
+      setIsQuizCompleted(true);
+    }
+    setButtonDisabled(false);
+  };
+
   const handleTimeUp = () => {
     setButtonDisabled(true);
     setShowAnswer(true);
@@ -143,8 +164,8 @@ const QuizPage = () => {
         <Card>
           <Title level={2}>Quiz Completed</Title>
           <p>{name}, your score is: {score}</p>
-          <Button type="primary" onClick={() => navigate('/start')} style={{ width: '100%', marginTop: '16px' }}>
-            Go back
+          <Button type="primary" onClick={() => navigate('/leaderboard')} style={{ width: '100%', marginTop: '16px' }}>
+            Check leaderboard
           </Button>
         </Card>
       </div>
@@ -216,23 +237,23 @@ const QuizPage = () => {
             />
           )}
   
-  {showGambling ? (
-          <GamblingGame
-            score={score}
-            onScoreChange={setScore}
-            onClose={handleGamblingClose}
-          />
-        ) : (
-          <Button 
-            type="primary" 
-            onClick={handleSubmit} 
-            disabled={selectedAnswer === null || buttonDisabled} 
-            size="large"
-            block
-          >
-            {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Finish'}
-          </Button>
-        )}
+          {showGambling ? (
+            <GamblingGame
+              score={score}
+              onScoreChange={setScore}
+              onClose={handleGamblingClose}
+            />
+          ) : (
+            <Button 
+              type="primary" 
+              onClick={handleSubmit} 
+              disabled={selectedAnswer === null || buttonDisabled} 
+              size="large"
+              block
+            >
+              {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Finish'}
+            </Button>
+          )}
   
           <Statistic title="Score" value={score} prefix={<TrophyOutlined />} />
         </Space>

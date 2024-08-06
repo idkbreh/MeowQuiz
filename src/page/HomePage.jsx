@@ -13,7 +13,7 @@ const HomePage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('https://bio-ontop.vercel.app/api/quiz')
+    axios.get('https://bio-ontop.vercel.app/api/quiz?subject=superbio')
       .then(response => {
         const uniqueSubjects = [...new Set(response.data.map(q => q.subject))];
         setSubjects(uniqueSubjects);
